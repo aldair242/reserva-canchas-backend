@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: reserva-canchas
+  profiles:
+    active: dev
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: 8080
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+clips:
+  ffmpeg:
+    simulado: ${CLIPS_FFMPEG_SIMULADO:true}
+    ruta: ${CLIPS_FFMPEG_RUTA:ffmpeg}
+  segundos-antes: ${CLIPS_SEGUNDOS_ANTES:15}
+  segundos-despues: ${CLIPS_SEGUNDOS_DESPUES:8}
+
+almacenamiento:
+  tipo: ${ALMACENAMIENTO_TIPO:local}
+  local:
+    directorio: ${ALMACENAMIENTO_LOCAL_DIR:target/almacenamiento/clips}
+  s3:
+    bucket: ${ALMACENAMIENTO_S3_BUCKET:reservacanchas-clips}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.reservacanchas: INFO
+    org.hibernate.SQL: DEBUG
+    org.flywaydb: INFO
