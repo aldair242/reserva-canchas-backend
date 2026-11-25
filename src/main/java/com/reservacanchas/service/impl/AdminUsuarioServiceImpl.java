@@ -28,6 +28,7 @@ public class AdminUsuarioServiceImpl implements AdminUsuarioService {
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public AdminUsuarioServiceImpl(AdministradorSedeRepository administradorSedeRepository,
                                   UsuarioRepository usuarioRepository,
                                   SedeRepository sedeRepository,

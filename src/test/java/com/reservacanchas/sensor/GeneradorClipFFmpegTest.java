@@ -16,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
 import java.time.LocalDateTime;
+import java.time.Month;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -59,9 +61,20 @@ class GeneradorClipFFmpegTest {
 
     @Test
     void generar_modoSimulado_creaClipListoSinNecesidadDeFFmpeg() {
-        when(almacenamiento.subir(any(File.class)))
-                .thenReturn("video_simulado_123.mp4")
-                .thenReturn("miniatura_simulada_123.jpg");
+        java.util.concurrent.atomic.AtomicReference<byte[]> capturedVideoBytes = new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicReference<byte[]> capturedThumbBytes = new java.util.concurrent.atomic.AtomicReference<>();
+
+        when(almacenamiento.subir(any(File.class))).thenAnswer(invocation -> {
+            File file = invocation.getArgument(0);
+            byte[] bytes = java.nio.file.Files.readAllBytes(file.toPath());
+            if (file.getName().endsWith(".mp4")) {
+                capturedVideoBytes.set(bytes);
+                return "video_simulado_123.mp4";
+            } else {
+                capturedThumbBytes.set(bytes);
+                return "miniatura_simulada_123.jpg";
+            }
+        });
 
         LocalDateTime instanteGol = LocalDateTime.now();
         Clip clip = generadorClipSimulado.generar(grabacion, instanteGol, 15, 8);
@@ -77,12 +90,31 @@ class GeneradorClipFFmpegTest {
         assertFalse(clip.estaDescartado());
 
         // Se verifica que subio video y miniatura
-        verify(almacenamiento, atLeastOnce()).subir(any(File.class));
+        verify(almacenamiento, org.mockito.Mockito.times(2)).subir(any(File.class));
+
+        byte[] videoBytes = capturedVideoBytes.get();
+        byte[] thumbBytes = capturedThumbBytes.get();
+
+        assertNotNull(videoBytes);
+        assertNotNull(thumbBytes);
+
+        // Cabecera MP4 ftyp
+        assertTrue(videoBytes.length > 8);
+        assertEquals('f', (char) videoBytes[4]);
+        assertEquals('t', (char) videoBytes[5]);
+        assertEquals('y', (char) videoBytes[6]);
+        assertEquals('p', (char) videoBytes[7]);
+
+        // Cabecera JPEG
+        assertTrue(thumbBytes.length > 3);
+        assertEquals((byte) 0xFF, thumbBytes[0]);
+        assertEquals((byte) 0xD8, thumbBytes[1]);
+        assertEquals((byte) 0xFF, thumbBytes[2]);
     }
 
     @Test
     void clip_calcularRango_retornaIntervaloCorrecto() {
-        LocalDateTime instante = LocalDateTime.of(2026, 10, 11, 15, 30, 0);
+        LocalDateTime instante = LocalDateTime.of(2026, Month.OCTOBER, 11, 15, 30, 0);
         Clip clip = new Clip();
         clip.setInstante(instante);
         clip.setSegundosAntes(15);

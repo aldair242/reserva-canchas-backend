@@ -37,6 +37,8 @@ import java.util.List;
 @Service
 public class CanchaServiceImpl implements CanchaService {
 
+    private static final String RESOURCE_CANCHA = "Cancha";
+
     private final CanchaRepository canchaRepository;
     private final SedeRepository sedeRepository;
     private final ReservaRepository reservaRepository;
@@ -72,7 +74,7 @@ public class CanchaServiceImpl implements CanchaService {
     @Transactional(readOnly = true)
     public CanchaResponse obtenerPorId(Long id) {
         Cancha cancha = canchaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Cancha", id));
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_CANCHA, id));
         return canchaMapper.toResponse(cancha);
     }
 
@@ -89,7 +91,7 @@ public class CanchaServiceImpl implements CanchaService {
     @Transactional
     public CanchaResponse actualizar(Long id, CanchaRequest request, Authentication authentication) {
         Cancha cancha = canchaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Cancha", id));
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_CANCHA, id));
         securityService.verificarGestionSede(cancha.getSede(), authentication);
 
         if (!request.sedeId().equals(cancha.getSede().getId())) {
@@ -115,7 +117,7 @@ public class CanchaServiceImpl implements CanchaService {
     @Transactional
     public void eliminar(Long id, Authentication authentication) {
         Cancha cancha = canchaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Cancha", id));
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_CANCHA, id));
         securityService.verificarGestionSede(cancha.getSede(), authentication);
         canchaRepository.delete(cancha);
     }
@@ -124,7 +126,7 @@ public class CanchaServiceImpl implements CanchaService {
     @Transactional(readOnly = true)
     public DisponibilidadResponse obtenerDisponibilidad(Long canchaId, LocalDate fecha) {
         Cancha cancha = canchaRepository.findById(canchaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cancha", canchaId));
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_CANCHA, canchaId));
 
         Sede sede = cancha.getSede();
         LocalTime apertura = sede.getHoraApertura();
@@ -164,7 +166,7 @@ public class CanchaServiceImpl implements CanchaService {
     @Transactional
     public CanchaResponse bloquear(Long canchaId, BloqueoCanchaRequest request, Authentication authentication) {
         Cancha cancha = canchaRepository.findById(canchaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cancha", canchaId));
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_CANCHA, canchaId));
         securityService.verificarGestionSede(cancha.getSede(), authentication);
 
         BloqueoCancha bloqueo = new BloqueoCancha();

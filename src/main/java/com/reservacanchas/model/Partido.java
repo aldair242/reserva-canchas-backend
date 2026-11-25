@@ -124,4 +124,19 @@ public class Partido {
         this.tokenInvitacion = "INV-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20).toUpperCase();
         return this.tokenInvitacion;
     }
+
+    public String revocarTokenInvitacion() {
+        return generarEnlaceInvitacion();
+    }
+
+    public boolean esInvitacionVencida(LocalDateTime ahora) {
+        if (estado != EstadoPartido.PROGRAMADO) {
+            return true;
+        }
+        if (reserva != null && reserva.getFecha() != null && reserva.getHoraInicio() != null) {
+            LocalDateTime inicioProgramado = LocalDateTime.of(reserva.getFecha(), reserva.getHoraInicio());
+            return ahora.isAfter(inicioProgramado);
+        }
+        return false;
+    }
 }

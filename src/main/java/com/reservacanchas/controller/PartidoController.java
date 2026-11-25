@@ -69,8 +69,8 @@ public class PartidoController {
             @ApiResponse(responseCode = "401", description = "No autenticado"),
             @ApiResponse(responseCode = "404", description = "Partido no encontrado")
     })
-    public ResponseEntity<PartidoResponse> obtenerPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(partidoService.obtenerPorId(id));
+    public ResponseEntity<PartidoResponse> obtenerPorId(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(partidoService.obtenerPorId(id, authentication));
     }
 
     @PostMapping("/{id}/participantes")
@@ -115,5 +115,18 @@ public class PartidoController {
     public ResponseEntity<PartidoResponse> finalizar(@PathVariable Long id,
                                                       Authentication authentication) {
         return ResponseEntity.ok(partidoService.finalizar(id, authentication));
+    }
+
+    @PostMapping("/{id}/invitacion/revocar")
+    @Operation(summary = "Revocar y regenerar token de invitación del partido", description = "Invalida el enlace y token actual y genera uno nuevo.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Token revocado y regenerado exitosamente"),
+            @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "403", description = "No autorizado"),
+            @ApiResponse(responseCode = "404", description = "Partido no encontrado")
+    })
+    public ResponseEntity<PartidoResponse> revocarToken(@PathVariable Long id,
+                                                         Authentication authentication) {
+        return ResponseEntity.ok(partidoService.revocarTokenInvitacion(id, authentication));
     }
 }

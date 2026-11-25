@@ -35,14 +35,18 @@ public class DevDataInitializer implements CommandLineRunner {
                               AdministradorSedeRepository administradorSedeRepository,
                               AdministradorRepository administradorRepository,
                               PasswordEncoder passwordEncoder,
-                              @Value("${dev.data.admin-sede-password:admin123}") String passwordAdminSede,
-                              @Value("${dev.data.admin-general-password:admin123}") String passwordAdminGeneral) {
+                              @Value("${dev.data.admin-sede-password:}") String passwordAdminSede,
+                              @Value("${dev.data.admin-general-password:}") String passwordAdminGeneral) {
         this.usuarioRepository = usuarioRepository;
         this.administradorSedeRepository = administradorSedeRepository;
         this.administradorRepository = administradorRepository;
         this.passwordEncoder = passwordEncoder;
-        this.passwordAdminSede = passwordAdminSede;
-        this.passwordAdminGeneral = passwordAdminGeneral;
+        this.passwordAdminSede = (passwordAdminSede != null && !passwordAdminSede.isBlank())
+                ? passwordAdminSede
+                : java.util.UUID.randomUUID().toString();
+        this.passwordAdminGeneral = (passwordAdminGeneral != null && !passwordAdminGeneral.isBlank())
+                ? passwordAdminGeneral
+                : java.util.UUID.randomUUID().toString();
     }
 
     @Override
@@ -64,7 +68,7 @@ public class DevDataInitializer implements CommandLineRunner {
             admin.setActivo(true);
 
             administradorSedeRepository.save(admin);
-            log.info("Usuario AdministradorSede de prueba creado: {} (password: {})", CORREO_ADMIN_SEDE, passwordAdminSede);
+            log.info("Usuario AdministradorSede de prueba inicializado: {}", CORREO_ADMIN_SEDE);
         }
     }
 
@@ -80,7 +84,7 @@ public class DevDataInitializer implements CommandLineRunner {
             admin.setActivo(true);
 
             administradorRepository.save(admin);
-            log.info("Usuario Administrador (Admin General) de prueba creado: {} (password: {})", correo, password);
+            log.info("Usuario Administrador (Admin General) de prueba inicializado: {}", correo);
         }
     }
 }

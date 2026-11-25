@@ -34,6 +34,11 @@ clips:
   segundos-antes: ${CLIPS_SEGUNDOS_ANTES:15}
   segundos-despues: ${CLIPS_SEGUNDOS_DESPUES:8}
 
+yolo:
+  simulado: ${YOLO_SIMULADO:true}
+  modelo: ${YOLO_MODELO:yolov8-sports.pt}
+  umbral-confianza: ${YOLO_UMBRAL_CONFIANZA:0.85}
+
 almacenamiento:
   tipo: ${ALMACENAMIENTO_TIPO:local}
   local:

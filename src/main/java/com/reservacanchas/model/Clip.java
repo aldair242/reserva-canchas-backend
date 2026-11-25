@@ -80,7 +80,7 @@ public class Clip implements IDescartable {
         this.duracionSegundos = this.segundosAntes + this.segundosDespues;
     }
 
-    public void marcarError(String motivo) {
+    public void marcarError() {
         this.estado = EstadoClip.ERROR;
     }
 

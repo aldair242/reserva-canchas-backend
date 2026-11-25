@@ -60,6 +60,9 @@ public class Reserva {
     @Column(name = "motivo_cancelacion", length = 255)
     private String motivoCancelacion;
 
+    @Column(name = "fecha_creacion")
+    private LocalDateTime fechaCreacion = LocalDateTime.now(ClockConfig.ZONA_HORARIA);
+
     @Version
     @Column(nullable = false)
     private Long version;
@@ -127,8 +130,33 @@ public class Reserva {
         return LocalDateTime.now(ClockConfig.ZONA_HORARIA).isBefore(inicio);
     }
 
+    public boolean estaExpirada(LocalDateTime ahora) {
+        if (estado != EstadoReserva.PENDIENTE) {
+            return false;
+        }
+        LocalDateTime limite = (fechaCreacion != null ? fechaCreacion : LocalDateTime.of(fecha, horaInicio)).plusMinutes(15);
+        return ahora.isAfter(limite);
+    }
+
+    public BigDecimal getMontoPagado() {
+        if (pagos == null || pagos.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return pagos.stream()
+                .filter(p -> p.getEstado() == com.reservacanchas.model.enums.EstadoPago.PAGADO)
+                .map(Pago::getMonto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getSaldoPendiente() {
+        BigDecimal total = precioTotal != null ? precioTotal : BigDecimal.ZERO;
+        BigDecimal pagado = getMontoPagado();
+        BigDecimal saldo = total.subtract(pagado);
+        return saldo.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : saldo;
+    }
+
     public boolean estaPagada() {
-        return pagos.stream().anyMatch(p -> p.getEstado() == com.reservacanchas.model.enums.EstadoPago.PAGADO);
+        return getSaldoPendiente().compareTo(BigDecimal.ZERO) == 0 && getMontoPagado().compareTo(BigDecimal.ZERO) > 0;
     }
 
     public void agregarPago(Pago p) {

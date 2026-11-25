@@ -38,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final java.time.Clock clock;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public AuthServiceImpl(JugadorRepository jugadorRepository,
                            UsuarioRepository usuarioRepository,
                            PasswordEncoder passwordEncoder,

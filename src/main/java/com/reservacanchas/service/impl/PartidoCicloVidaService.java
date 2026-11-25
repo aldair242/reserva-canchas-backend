@@ -35,6 +35,7 @@ public class PartidoCicloVidaService {
     private final GrabacionRepository grabacionRepository;
     private final Clock clock;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public PartidoCicloVidaService(ReservaRepository reservaRepository,
                                   PartidoRepository partidoRepository,
                                   CamaraCanchaRepository camaraCanchaRepository,
@@ -63,6 +64,14 @@ public class PartidoCicloVidaService {
                 List.of(EstadoReserva.PENDIENTE, EstadoReserva.CONFIRMADA));
 
         for (Reserva reserva : activas) {
+            // 1) Si la reserva está PENDIENTE y han transcurrido más de 15 minutos:
+            if (reserva.getEstado() == EstadoReserva.PENDIENTE && reserva.estaExpirada(ahora)) {
+                reserva.cancelar("Expirada automáticamente por falta de pago dentro de los 15 minutos");
+                reservaRepository.save(reserva);
+                log.info("Reserva {} cancelada por superar el límite de 15 minutos para pago", reserva.getId());
+                continue;
+            }
+
             LocalDateTime inicio = LocalDateTime.of(reserva.getFecha(), reserva.getHoraInicio());
             LocalDateTime fin = LocalDateTime.of(reserva.getFecha(), reserva.getHoraFin());
 
@@ -86,6 +95,11 @@ public class PartidoCicloVidaService {
     }
 
     private void iniciarPartidoYGrabacion(Reserva reserva) {
+        if (reserva.getEstado() == EstadoReserva.CANCELADA) {
+            log.warn("No se puede iniciar partido para una reserva cancelada: {}", reserva.getId());
+            return;
+        }
+
         Partido partido = partidoRepository.findByReservaId(reserva.getId()).orElse(null);
         if (partido == null) {
             partido = new Partido();

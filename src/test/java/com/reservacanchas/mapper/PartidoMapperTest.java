@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,7 +33,7 @@ class PartidoMapperTest {
 
     @BeforeEach
     void setUp() {
-        partidoMapper = new PartidoMapperImpl();
+        partidoMapper = org.mapstruct.factory.Mappers.getMapper(PartidoMapper.class);
     }
 
     @Test
@@ -44,8 +45,8 @@ class PartidoMapperTest {
         partido.setNombreEquipoB("Los Tigres");
         partido.setGolesEquipoA(2);
         partido.setGolesEquipoB(1);
-        partido.setInicioReal(LocalDateTime.of(2026, 10, 11, 18, 0));
-        partido.setFinReal(LocalDateTime.of(2026, 10, 11, 19, 0));
+        partido.setInicioReal(LocalDateTime.of(2026, Month.OCTOBER, 11, 18, 0));
+        partido.setFinReal(LocalDateTime.of(2026, Month.OCTOBER, 11, 19, 0));
 
         Jugador j1 = new Jugador();
         j1.setId(101L);
@@ -91,7 +92,7 @@ class PartidoMapperTest {
         Gol gol = new Gol();
         gol.setId(501L);
         gol.setEquipo(LadoEquipo.A);
-        gol.setInstante(LocalDateTime.of(2026, 10, 11, 18, 15));
+        gol.setInstante(LocalDateTime.of(2026, Month.OCTOBER, 11, 18, 15));
         gol.setMinuto(15);
         gol.setOrigen(OrigenEvento.MANUAL);
         gol.setEstado(EstadoEvento.CONFIRMADO);
@@ -101,7 +102,7 @@ class PartidoMapperTest {
         GolEnContra golEnContra = new GolEnContra();
         golEnContra.setId(502L);
         golEnContra.setEquipo(LadoEquipo.A);
-        golEnContra.setInstante(LocalDateTime.of(2026, 10, 11, 18, 30));
+        golEnContra.setInstante(LocalDateTime.of(2026, Month.OCTOBER, 11, 18, 30));
         golEnContra.setMinuto(30);
         golEnContra.setOrigen(OrigenEvento.MANUAL);
         golEnContra.setEstado(EstadoEvento.CONFIRMADO);
@@ -111,7 +112,7 @@ class PartidoMapperTest {
         TarjetaAmarilla amarilla = new TarjetaAmarilla();
         amarilla.setId(503L);
         amarilla.setEquipo(LadoEquipo.B);
-        amarilla.setInstante(LocalDateTime.of(2026, 10, 11, 18, 40));
+        amarilla.setInstante(LocalDateTime.of(2026, Month.OCTOBER, 11, 18, 40));
         amarilla.setMinuto(40);
         amarilla.setOrigen(OrigenEvento.MANUAL);
         amarilla.setEstado(EstadoEvento.CONFIRMADO);
@@ -122,7 +123,7 @@ class PartidoMapperTest {
         TarjetaRoja roja = new TarjetaRoja();
         roja.setId(504L);
         roja.setEquipo(LadoEquipo.B);
-        roja.setInstante(LocalDateTime.of(2026, 10, 11, 18, 50));
+        roja.setInstante(LocalDateTime.of(2026, Month.OCTOBER, 11, 18, 50));
         roja.setMinuto(50);
         roja.setOrigen(OrigenEvento.MANUAL);
         roja.setEstado(EstadoEvento.CONFIRMADO);

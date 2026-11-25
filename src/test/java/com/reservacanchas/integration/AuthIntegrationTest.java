@@ -45,6 +45,8 @@ class AuthIntegrationTest {
         registry.add("spring.flyway.clean-disabled", () -> false);
         registry.add("jwt.secret", () -> "test-secret-key-minimum-256-bits-for-hs256-algorithm-0123456789");
         registry.add("jwt.expiration", () -> 86400000);
+        registry.add("dev.data.admin-sede-password", () -> "admin123");
+        registry.add("dev.data.admin-general-password", () -> "admin123");
     }
 
     @Autowired

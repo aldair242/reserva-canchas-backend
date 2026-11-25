@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Month;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -45,7 +46,7 @@ class ReservaMapperTest {
         Reserva reserva = new Reserva();
         reserva.setId(10L);
         reserva.setCodigo("RES-12345");
-        reserva.setFecha(LocalDate.of(2026, 10, 20));
+        reserva.setFecha(LocalDate.of(2026, Month.OCTOBER, 20));
         reserva.setHoraInicio(LocalTime.of(19, 0));
         reserva.setHoraFin(LocalTime.of(20, 0));
         reserva.setEstado(EstadoReserva.CONFIRMADA);
@@ -80,7 +81,7 @@ class ReservaMapperTest {
         Reserva reserva = new Reserva();
         reserva.setId(11L);
         reserva.setCodigo("RES-67890");
-        reserva.setFecha(LocalDate.of(2026, 10, 21));
+        reserva.setFecha(LocalDate.of(2026, Month.OCTOBER, 21));
         reserva.setHoraInicio(LocalTime.of(18, 0));
         reserva.setHoraFin(LocalTime.of(19, 0));
         reserva.setEstado(EstadoReserva.PENDIENTE);

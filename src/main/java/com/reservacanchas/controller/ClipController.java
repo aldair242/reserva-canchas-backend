@@ -120,10 +120,7 @@ public class ClipController {
             File archivo = Path.of(local.getDirectorio(), nombreArchivo).toFile();
             if (archivo.exists()) {
                 Resource resource = new FileSystemResource(archivo);
-                MediaType mediaType = nombreArchivo.endsWith(".mp4")
-                        ? MediaType.valueOf("video/mp4")
-                        : (nombreArchivo.endsWith(".jpg") || nombreArchivo.endsWith(".jpeg")
-                        ? MediaType.IMAGE_JPEG : MediaType.APPLICATION_OCTET_STREAM);
+                MediaType mediaType = determinarMediaType(nombreArchivo);
 
                 return ResponseEntity.ok()
                         .contentType(mediaType)
@@ -132,6 +129,16 @@ public class ClipController {
             }
         }
         return ResponseEntity.notFound().build();
+    }
+
+    private MediaType determinarMediaType(String nombreArchivo) {
+        if (nombreArchivo.endsWith(".mp4")) {
+            return MediaType.valueOf("video/mp4");
+        }
+        if (nombreArchivo.endsWith(".jpg") || nombreArchivo.endsWith(".jpeg")) {
+            return MediaType.IMAGE_JPEG;
+        }
+        return MediaType.APPLICATION_OCTET_STREAM;
     }
 }
 

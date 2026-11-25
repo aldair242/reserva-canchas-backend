@@ -22,6 +22,7 @@ public class EventoCierreService {
     private final EventoPartidoRepository eventoRepository;
     private final Clock clock;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public EventoCierreService(EventoPartidoRepository eventoRepository, Clock clock) {
         this.eventoRepository = eventoRepository;
         this.clock = clock != null ? clock : Clock.system(ClockConfig.ZONA_HORARIA);

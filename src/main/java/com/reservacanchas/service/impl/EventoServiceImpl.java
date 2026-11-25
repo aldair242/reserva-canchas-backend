@@ -47,6 +47,7 @@ public class EventoServiceImpl implements EventoService {
     @Value("${partidos.atribucion.horas-limite:48}")
     private int horasLimiteAtribucion;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public EventoServiceImpl(EventoPartidoRepository eventoRepository,
                              PartidoRepository partidoRepository,
                              EventoMapper eventoMapper,
@@ -80,6 +81,8 @@ public class EventoServiceImpl implements EventoService {
                                           Authentication authentication) {
         Partido partido = partidoRepository.findById(partidoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Partido", partidoId));
+
+        validarAutorizacionRegistrarEvento(partido, authentication);
 
         if (partido.getEstado() != EstadoPartido.EN_JUEGO
                 && partido.getEstado() != EstadoPartido.PROGRAMADO) {
@@ -157,7 +160,11 @@ public class EventoServiceImpl implements EventoService {
     @Override
     @Transactional
     public EventoResponse confirmar(Long eventoId, Authentication authentication) {
-        Jugador jugador = obtenerJugadorAutenticado(authentication);
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new org.springframework.security.access.AccessDeniedException("Debe estar autenticado para confirmar eventos");
+        }
+
         EventoPartido evento = eventoRepository.findById(eventoId)
                 .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_EVENTO, eventoId));
 
@@ -169,13 +176,36 @@ public class EventoServiceImpl implements EventoService {
             throw new OperacionNoPermitidaException(
                     "El evento debe ser atribuido antes de confirmarse");
         }
-        if (evento.getAtribuidor().getId().equals(jugador.getId())) {
-            throw new OperacionNoPermitidaException(
-                    "El confirmador debe ser distinto del atribuidor");
+
+        Usuario usuario = securityService.getUsuarioActual(authentication);
+        boolean esAdmin = securityService.esAdministrador(authentication);
+        boolean esAdminSede = false;
+        if (evento.getPartido().getReserva() != null && evento.getPartido().getReserva().getCancha() != null
+                && evento.getPartido().getReserva().getCancha().getSede() != null
+                && securityService.esAdministradorSede(authentication)) {
+            try {
+                securityService.verificarGestionSede(evento.getPartido().getReserva().getCancha().getSede(), authentication);
+                esAdminSede = true;
+            } catch (Exception ignored) {}
         }
 
-        validarParticipanteJugador(evento.getPartido(), jugador);
-        evento.confirmar(jugador);
+        Jugador jugador = null;
+        if (usuario instanceof Jugador j) {
+            jugador = j;
+        }
+
+        if (!esAdmin && !esAdminSede) {
+            if (jugador == null) {
+                throw new org.springframework.security.access.AccessDeniedException("No tiene permisos para confirmar este evento");
+            }
+            if (evento.getAtribuidor().getId().equals(jugador.getId())) {
+                throw new OperacionNoPermitidaException(
+                        "El confirmador debe ser distinto del atribuidor");
+            }
+            validarParticipanteJugador(evento.getPartido(), jugador);
+        }
+
+        evento.confirmar(jugador != null ? jugador : (evento.getAtribuidor() instanceof Jugador j ? j : null));
         EventoPartido guardado = eventoRepository.save(evento);
 
         evento.getPartido().recalcularMarcador();
@@ -186,17 +216,67 @@ public class EventoServiceImpl implements EventoService {
     @Override
     @Transactional
     public EventoResponse descartar(Long eventoId, Authentication authentication) {
-        Jugador jugador = obtenerJugadorAutenticado(authentication);
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new org.springframework.security.access.AccessDeniedException("Debe estar autenticado para descartar eventos");
+        }
+
         EventoPartido evento = eventoRepository.findById(eventoId)
                 .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_EVENTO, eventoId));
 
-        validarParticipanteJugador(evento.getPartido(), jugador);
+        boolean esAdmin = securityService.esAdministrador(authentication);
+        boolean esAdminSede = false;
+        if (evento.getPartido().getReserva() != null && evento.getPartido().getReserva().getCancha() != null
+                && evento.getPartido().getReserva().getCancha().getSede() != null
+                && securityService.esAdministradorSede(authentication)) {
+            try {
+                securityService.verificarGestionSede(evento.getPartido().getReserva().getCancha().getSede(), authentication);
+                esAdminSede = true;
+            } catch (Exception ignored) {}
+        }
+
+        if (!esAdmin && !esAdminSede) {
+            Jugador jugador = obtenerJugadorAutenticado(authentication);
+            validarParticipanteJugador(evento.getPartido(), jugador);
+        }
+
         evento.descartar();
         EventoPartido guardado = eventoRepository.save(evento);
 
         evento.getPartido().recalcularMarcador();
         partidoRepository.save(evento.getPartido());
         return eventoMapper.toResponse(guardado);
+    }
+
+    private void validarAutorizacionRegistrarEvento(Partido partido, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new org.springframework.security.access.AccessDeniedException("Debe estar autenticado para registrar eventos");
+        }
+        if (securityService.esAdministrador(authentication)) {
+            return;
+        }
+        if (partido.getReserva() != null && partido.getReserva().getCancha() != null
+                && partido.getReserva().getCancha().getSede() != null
+                && securityService.esAdministradorSede(authentication)) {
+            try {
+                securityService.verificarGestionSede(partido.getReserva().getCancha().getSede(), authentication);
+                return;
+            } catch (Exception ignored) {}
+        }
+        Usuario usuario = securityService.getUsuarioActual(authentication);
+        if (partido.getReserva() != null && partido.getReserva().getOrganizador() != null
+                && partido.getReserva().getOrganizador().getId().equals(usuario.getId())) {
+            return;
+        }
+        if (partido.getParticipantes() != null) {
+            boolean esParticipante = partido.getParticipantes().stream()
+                    .anyMatch(p -> p.getPersona() != null && p.getPersona().getId().equals(usuario.getId()));
+            if (esParticipante) {
+                return;
+            }
+        }
+        throw new org.springframework.security.access.AccessDeniedException("No tiene permisos para registrar eventos en este partido");
     }
 
     private Gol crearGol(Partido partido, EventoRequest request,

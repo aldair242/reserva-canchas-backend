@@ -29,6 +29,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -48,6 +50,7 @@ public class ReservaServiceImpl implements ReservaService {
     private final PagoService pagoService;
     private final java.time.Clock clock;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public ReservaServiceImpl(ReservaRepository reservaRepository,
                               CanchaRepository canchaRepository,
                               PartidoRepository partidoRepository,
@@ -132,6 +135,13 @@ public class ReservaServiceImpl implements ReservaService {
         }
 
         reserva.cancelar(request.motivo());
+        if (reserva.getPagos() != null) {
+            for (Pago p : reserva.getPagos()) {
+                if (p.getEstado() == com.reservacanchas.model.enums.EstadoPago.PAGADO) {
+                    p.reembolsar();
+                }
+            }
+        }
         Reserva guardada = reservaRepository.save(reserva);
         return reservaMapper.toResponse(guardada);
     }
@@ -166,6 +176,31 @@ public class ReservaServiceImpl implements ReservaService {
         }
 
         reserva.reprogramar(request.fecha(), request.horaInicio(), request.horaFin());
+
+        BigDecimal nuevoPrecio = reserva.getPrecioTotal();
+        BigDecimal montoPagado = reserva.getMontoPagado();
+        if (montoPagado.compareTo(BigDecimal.ZERO) > 0) {
+            if (nuevoPrecio.compareTo(montoPagado) > 0) {
+                reserva.setEstado(EstadoReserva.PENDIENTE);
+            } else if (nuevoPrecio.compareTo(montoPagado) < 0) {
+                BigDecimal exceso = montoPagado.subtract(nuevoPrecio);
+                for (Pago p : reserva.getPagos()) {
+                    if (p.getEstado() == com.reservacanchas.model.enums.EstadoPago.PAGADO && exceso.compareTo(BigDecimal.ZERO) > 0) {
+                        if (p.getMonto().compareTo(exceso) <= 0) {
+                            exceso = exceso.subtract(p.getMonto());
+                            p.reembolsar();
+                        } else {
+                            p.setMonto(p.getMonto().subtract(exceso));
+                            exceso = BigDecimal.ZERO;
+                        }
+                    }
+                }
+                reserva.setEstado(EstadoReserva.CONFIRMADA);
+            } else {
+                reserva.setEstado(EstadoReserva.CONFIRMADA);
+            }
+        }
+
         Reserva guardada = reservaRepository.saveAndFlush(reserva);
         return reservaMapper.toResponse(guardada);
     }
@@ -180,6 +215,16 @@ public class ReservaServiceImpl implements ReservaService {
                 || reserva.getEstado() == EstadoReserva.NO_SHOW) {
             throw new OperacionNoPermitidaException(
                     "No se puede pagar una reserva en estado " + reserva.getEstado());
+        }
+
+        if (reserva.estaPagada()) {
+            throw new OperacionNoPermitidaException("La reserva ya se encuentra pagada");
+        }
+
+        BigDecimal saldoPendiente = reserva.getSaldoPendiente();
+        if (request.monto() == null || request.monto().compareTo(saldoPendiente) != 0) {
+            throw new IllegalArgumentException(
+                    "El monto a pagar (" + request.monto() + ") debe ser exactamente igual al saldo pendiente (" + saldoPendiente + ")");
         }
 
         Pago pago = pagoService.procesarPago(reserva, request);

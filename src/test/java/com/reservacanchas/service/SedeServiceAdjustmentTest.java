@@ -22,6 +22,7 @@ import org.springframework.security.core.Authentication;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,7 +73,7 @@ class SedeServiceAdjustmentTest {
     @Test
     void listarReservasPorSede_validaSeguridadYRetornaReservas() {
         Long sedeId = 5L;
-        LocalDate fecha = LocalDate.of(2026, 10, 25);
+        LocalDate fecha = LocalDate.of(2026, Month.OCTOBER, 25);
         Sede sede = new Sede();
         sede.setId(sedeId);
 

@@ -55,6 +55,7 @@ public class SensorServiceImpl implements SensorService {
     @Value("${clips.segundos-despues:8}")
     private int segundosDespues;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public SensorServiceImpl(
             SensorArcoRepository sensorArcoRepository,
             DispositivoRepository dispositivoRepository,

@@ -88,6 +88,7 @@ class PartidoCicloVidaYParticipantesTest {
         Partido partido = new Partido();
         partido.setId(20L);
         partido.setReserva(reserva);
+        partido.generarEnlaceInvitacion();
 
         // Ya tiene a 'amigo' como participante
         ParticipantePartido part1 = new ParticipantePartido();
@@ -98,7 +99,7 @@ class PartidoCicloVidaYParticipantesTest {
         when(partidoRepository.findById(20L)).thenReturn(Optional.of(partido));
         when(jugadorRepository.findById(99L)).thenReturn(Optional.of(amigo));
 
-        ParticipanteRequest request = new ParticipanteRequest(99L, null, null, LadoEquipo.B);
+        ParticipanteRequest request = new ParticipanteRequest(99L, null, null, LadoEquipo.B, partido.getTokenInvitacion());
 
         OperacionNoPermitidaException ex = assertThrows(OperacionNoPermitidaException.class, () ->
                 service.agregarParticipante(20L, request, authentication)
@@ -132,12 +133,13 @@ class PartidoCicloVidaYParticipantesTest {
         Partido partido = new Partido();
         partido.setId(20L);
         partido.setReserva(reserva);
+        partido.generarEnlaceInvitacion();
 
         when(partidoRepository.findById(20L)).thenReturn(Optional.of(partido));
         when(jugadorRepository.findById(99L)).thenReturn(Optional.of(amigo));
         when(partidoRepository.save(any(Partido.class))).thenReturn(partido);
 
-        ParticipanteRequest request = new ParticipanteRequest(99L, null, null, LadoEquipo.B);
+        ParticipanteRequest request = new ParticipanteRequest(99L, null, null, LadoEquipo.B, partido.getTokenInvitacion());
 
         service.agregarParticipante(20L, request, authentication);
 
@@ -240,5 +242,52 @@ class PartidoCicloVidaYParticipantesTest {
 
         assertFalse(reserva.puedeReprogramarse());
         assertFalse(reserva.puedeCancelarse());
+    }
+
+    @Test
+    void cicloVida_reservaPendienteMayor15Minutos_seCancela() {
+        PartidoCicloVidaService cicloService = new PartidoCicloVidaService(
+                reservaRepository, partidoRepository, camaraCanchaRepository, grabacionRepository
+        );
+
+        Reserva reserva = new Reserva();
+        reserva.setId(500L);
+        reserva.setEstado(EstadoReserva.PENDIENTE);
+        reserva.setFecha(LocalDate.now().plusDays(1));
+        reserva.setHoraInicio(LocalTime.of(18, 0));
+        reserva.setHoraFin(LocalTime.of(19, 0));
+        reserva.setFechaCreacion(java.time.LocalDateTime.now().minusMinutes(20));
+
+        when(reservaRepository.findByEstadoIn(any())).thenReturn(List.of(reserva));
+        when(reservaRepository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        cicloService.procesarCicloDeVida();
+
+        assertEquals(EstadoReserva.CANCELADA, reserva.getEstado());
+        assertTrue(reserva.getMotivoCancelacion().contains("15 minutos"));
+    }
+
+    @Test
+    void crearDesdeReserva_reservaCancelada_lanzaOperacionNoPermitida() {
+        PartidoServiceImpl service = new PartidoServiceImpl(
+                partidoRepository, reservaRepository, jugadorRepository,
+                invitadoRepository, camaraCanchaRepository, grabacionRepository,
+                partidoMapper, securityService
+        );
+
+        Jugador organizador = new Jugador();
+        organizador.setId(1L);
+
+        Reserva reserva = new Reserva();
+        reserva.setId(300L);
+        reserva.setOrganizador(organizador);
+        reserva.setEstado(EstadoReserva.CANCELADA);
+
+        when(securityService.getUsuarioActual(authentication)).thenReturn(organizador);
+        when(reservaRepository.findById(300L)).thenReturn(Optional.of(reserva));
+
+        OperacionNoPermitidaException ex = assertThrows(OperacionNoPermitidaException.class,
+                () -> service.crearDesdeReserva(300L, authentication));
+        assertEquals("No se puede crear un partido a partir de una reserva cancelada", ex.getMessage());
     }
 }
