@@ -17,7 +17,7 @@ public interface CanchaRepository extends JpaRepository<Cancha, Long> {
     List<Cancha> findBySedeId(Long sedeId);
 
     @Query("SELECT c FROM Cancha c WHERE " +
-           "(:sedeId IS NULL OR c.sede.id = :sedeId) AND " +
+           "(cast(:sedeId as Long) IS NULL OR c.sede.id = :sedeId) AND " +
            "(:tipo IS NULL OR TYPE(c) = :tipo)")
     List<Cancha> buscarConFiltros(@Param("sedeId") Long sedeId,
                                   @Param("tipo") Class<? extends Cancha> tipo);

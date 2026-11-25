@@ -81,6 +81,9 @@ public class SecurityConfig {
                                 "/api/sedes/mis"
                         ).authenticated()
                         .requestMatchers(
+                                HttpMethod.GET, "/api/partidos"
+                        ).hasAnyRole(ROL_ADMIN, ROL_ADMIN_SEDE)
+                        .requestMatchers(
                                 "/api/reservas/**"
                         ).hasRole("JUGADOR")
                         .requestMatchers(

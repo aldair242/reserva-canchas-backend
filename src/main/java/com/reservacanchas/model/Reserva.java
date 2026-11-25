@@ -138,12 +138,29 @@ public class Reserva {
         return ahora.isAfter(limite);
     }
 
+    public LocalDateTime getFechaLimitePago() {
+        if (estado != EstadoReserva.PENDIENTE) {
+            return null;
+        }
+        return (fechaCreacion != null ? fechaCreacion : LocalDateTime.of(fecha, horaInicio)).plusMinutes(15);
+    }
+
     public BigDecimal getMontoPagado() {
         if (pagos == null || pagos.isEmpty()) {
             return BigDecimal.ZERO;
         }
         return pagos.stream()
                 .filter(p -> p.getEstado() == com.reservacanchas.model.enums.EstadoPago.PAGADO)
+                .map(Pago::getMonto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getMontoReembolsado() {
+        if (pagos == null || pagos.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return pagos.stream()
+                .filter(p -> p.getEstado() == com.reservacanchas.model.enums.EstadoPago.REEMBOLSADO)
                 .map(Pago::getMonto)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }

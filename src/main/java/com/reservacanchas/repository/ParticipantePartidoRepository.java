@@ -33,9 +33,9 @@ public interface ParticipantePartidoRepository extends JpaRepository<Participant
     @Query("SELECT pp FROM ParticipantePartido pp " +
            "WHERE pp.persona.id = :personaId " +
            "AND pp.partido.estado = :estado " +
-           "AND (:sedeId IS NULL OR pp.partido.reserva.cancha.sede.id = :sedeId) " +
-           "AND (:desde IS NULL OR pp.partido.reserva.fecha >= :desde) " +
-           "AND (:hasta IS NULL OR pp.partido.reserva.fecha <= :hasta)")
+           "AND (cast(:sedeId as Long) IS NULL OR pp.partido.reserva.cancha.sede.id = :sedeId) " +
+           "AND (cast(:desde as LocalDate) IS NULL OR pp.partido.reserva.fecha >= :desde) " +
+           "AND (cast(:hasta as LocalDate) IS NULL OR pp.partido.reserva.fecha <= :hasta)")
     List<ParticipantePartido> findPartidosJugados(
             @Param("personaId") Long personaId,
             @Param("estado") EstadoPartido estado,

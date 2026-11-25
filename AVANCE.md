@@ -100,3 +100,16 @@ Entorno: Java 21, Spring Boot 3.3.5, PostgreSQL 16 (Docker / Testcontainers)
 ## 3. Pruebas Omitidas
 
 - **Pruebas omitidas:** 0 (Ninguna prueba fue omitida durante la ejecución de la suite).
+
+---
+
+## 4. Requerimientos de Integración Frontend Sincronizados
+
+| Requerimiento Frontend | Estado Backend | Contrato OpenAPI (`docs/openapi.json`) | Implementación |
+|---|:---:|:---:|---|
+| **Expiración y Cuenta Regresiva de Pago** | **COMPLETADO** | Expuesto en `ReservaResponse`: `fechaLimitePago` (`LocalDateTime`), `saldoPendiente` (`BigDecimal`), `montoPagado` (`BigDecimal`). | Mapeado desde `Reserva.getFechaLimitePago()`, computando exactamente la marca temporal de los 15 minutos máximos permitidos en reservas `PENDIENTE`. |
+| **Saldos y Montos Reales de Reserva** | **COMPLETADO** | Expuesto en `ReservaResponse`: `precioTotal`, `saldoPendiente`, `montoPagado`, `pagada`. | Calculados con la lógica de negocio y métodos de pago registrados sin requerir estimaciones en el frontend. |
+| **Consulta Global de Partidos para Administradores** | **COMPLETADO** | Nuevo endpoint `GET /api/partidos` con parámetros opcionales `sedeId` y `fecha`. | Protegido con rol `ADMIN` y `ADMIN_SEDE`. El Administrador de Sede consulta los partidos de su sede, y el Administrador General puede filtrar por cualquier sede o fecha. |
+| **Endpoints de Administradores de Sede** | **COMPLETADO** | Confirmado en OpenAPI: `GET /api/admin/usuarios/administradores-sede`, `POST`, `PUT /{id}`, `DELETE /{id}`. | Operativos para el rol Administrador General. |
+| **Simulación y Streaming YOLO Seguro** | **COMPLETADO** | `POST /api/sensores/yolo/camaras/{camaraId}/deteccion`<br>`POST /api/sensores/yolo/partidos/{partidoId}/deteccion` | Protegidos: rechazan anónimos (401), claves inválidas (401/403) y jugadores sin permisos (403). Aceptan tanto la clave API (`X-API-Key` o payload) como autenticación JWT de Administrador. |
+

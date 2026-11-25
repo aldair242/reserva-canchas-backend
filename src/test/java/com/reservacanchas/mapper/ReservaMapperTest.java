@@ -95,6 +95,9 @@ class ReservaMapperTest {
         assertNotNull(response);
         assertEquals(11L, response.id());
         assertNull(response.partidoId());
+        assertNotNull(response.fechaLimitePago());
+        assertEquals(new BigDecimal("80.00"), response.saldoPendiente());
+        assertEquals(BigDecimal.ZERO, response.montoPagado());
     }
 }
 

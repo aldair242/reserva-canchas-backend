@@ -7,6 +7,7 @@ import com.reservacanchas.dto.partido.PartidoResponse;
 import com.reservacanchas.exception.OperacionNoPermitidaException;
 import com.reservacanchas.mapper.EventoMapper;
 import com.reservacanchas.mapper.PartidoMapper;
+import com.reservacanchas.model.AdministradorSede;
 import com.reservacanchas.model.CanchaFutbol;
 import com.reservacanchas.model.Gol;
 import com.reservacanchas.model.Jugador;
@@ -25,6 +26,7 @@ import com.reservacanchas.repository.InvitadoRepository;
 import com.reservacanchas.repository.JugadorRepository;
 import com.reservacanchas.repository.PartidoRepository;
 import com.reservacanchas.repository.ReservaRepository;
+import com.reservacanchas.repository.SedeRepository;
 import com.reservacanchas.service.SecurityService;
 import com.reservacanchas.service.impl.EventoServiceImpl;
 import com.reservacanchas.service.impl.PartidoServiceImpl;
@@ -48,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,6 +64,9 @@ class PartidosEventosSeguridadTest {
 
     @Mock
     private ReservaRepository reservaRepository;
+
+    @Mock
+    private SedeRepository sedeRepository;
 
     @Mock
     private JugadorRepository jugadorRepository;
@@ -92,8 +98,10 @@ class PartidosEventosSeguridadTest {
 
     private Partido partido;
     private Reserva reserva;
+    private Sede sede;
     private Jugador organizador;
     private Jugador jugadorExterno;
+    private AdministradorSede adminSedeAjena;
 
     @BeforeEach
     void setUp() {
@@ -102,6 +110,7 @@ class PartidosEventosSeguridadTest {
         partidoService = new PartidoServiceImpl(
                 partidoRepository,
                 reservaRepository,
+                sedeRepository,
                 jugadorRepository,
                 invitadoRepository,
                 camaraCanchaRepository,
@@ -124,9 +133,22 @@ class PartidosEventosSeguridadTest {
         jugadorExterno = new Jugador();
         jugadorExterno.setId(99L);
 
+        adminSedeAjena = new AdministradorSede();
+        adminSedeAjena.setId(88L);
+        adminSedeAjena.setCorreo("admin.sede2@canchas.com");
+
+        sede = new Sede();
+        sede.setId(100L);
+        sede.setNombre("Sede Central");
+
+        CanchaFutbol cancha = new CanchaFutbol();
+        cancha.setId(20L);
+        cancha.setSede(sede);
+
         reserva = new Reserva();
         reserva.setId(10L);
         reserva.setOrganizador(organizador);
+        reserva.setCancha(cancha);
 
         partido = new Partido();
         partido.setId(5L);
@@ -212,5 +234,69 @@ class PartidosEventosSeguridadTest {
         OperacionNoPermitidaException ex = assertThrows(OperacionNoPermitidaException.class,
                 () -> partidoService.agregarParticipante(5L, request, authentication));
         assertEquals("Se requiere un token de invitación válido para unirse al partido", ex.getMessage());
+    }
+
+    @Test
+    void listarTodos_adminSedeDeOtraSede_lanzaAccessDenied() {
+        Sede sedeAjena = new Sede();
+        sedeAjena.setId(200L);
+
+        when(securityService.esAdministrador(authentication)).thenReturn(false);
+        when(securityService.esAdministradorSede(authentication)).thenReturn(true);
+        when(sedeRepository.findById(200L)).thenReturn(Optional.of(sedeAjena));
+        doThrow(new AccessDeniedException("No tiene permisos para gestionar esta sede"))
+                .when(securityService).verificarGestionSede(sedeAjena, authentication);
+
+        assertThrows(AccessDeniedException.class,
+                () -> partidoService.listarTodos(200L, null, null, null, authentication));
+    }
+
+    @Test
+    void obtenerPorId_adminSedeDeOtraSede_enmascaraTokenInvitacion() {
+        when(partidoRepository.findById(5L)).thenReturn(Optional.of(partido));
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn("adminSedeAjena");
+        when(securityService.esAdministrador(authentication)).thenReturn(false);
+        when(securityService.esAdministradorSede(authentication)).thenReturn(true);
+        doThrow(new AccessDeniedException("No tiene permisos para gestionar esta sede"))
+                .when(securityService).verificarGestionSede(sede, authentication);
+
+        PartidoResponse mapperResponse = new PartidoResponse(
+                5L, EstadoPartido.EN_JUEGO, "A", "B", 0, 0, null, null,
+                "INV-SECRET-TOKEN", 10L, Collections.emptyList(), Collections.emptyList()
+        );
+        when(partidoMapper.toResponse(partido)).thenReturn(mapperResponse);
+
+        PartidoResponse resp = partidoService.obtenerPorId(5L, authentication);
+
+        assertNotNull(resp);
+        assertNull(resp.tokenInvitacion(), "El token de invitación debe ser nulo para ADMIN_SEDE de otra sede");
+    }
+
+    @Test
+    void registrarEvento_adminSedeDeOtraSede_lanzaAccessDenied() {
+        when(partidoRepository.findById(5L)).thenReturn(Optional.of(partido));
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn("adminSedeAjena");
+        when(securityService.esAdministrador(authentication)).thenReturn(false);
+        when(securityService.esAdministradorSede(authentication)).thenReturn(true);
+        doThrow(new AccessDeniedException("No tiene permisos para gestionar esta sede"))
+                .when(securityService).verificarGestionSede(sede, authentication);
+        when(securityService.getUsuarioActual(authentication)).thenReturn(adminSedeAjena);
+
+        EventoRequest request = new EventoRequest(TipoEvento.GOL, LadoEquipo.A, LocalDateTime.now(clock), 10, null, null);
+
+        assertThrows(AccessDeniedException.class,
+                () -> eventoService.registrarEvento(5L, request, authentication));
+    }
+
+    @Test
+    void gestionarPartido_adminSedeDeOtraSede_lanzaOperacionNoPermitida() {
+        when(securityService.getUsuarioActual(authentication)).thenReturn(adminSedeAjena);
+
+        assertThrows(OperacionNoPermitidaException.class,
+                () -> partidoService.iniciar(5L, authentication));
+        assertThrows(OperacionNoPermitidaException.class,
+                () -> partidoService.finalizar(5L, authentication));
     }
 }

@@ -33,4 +33,17 @@ public interface PartidoRepository extends JpaRepository<Partido, Long> {
            "WHERE r.organizador.id = :jugadorId OR part.persona.id = :jugadorId " +
            "ORDER BY p.id DESC")
     java.util.List<Partido> findMisPartidos(@Param("jugadorId") Long jugadorId);
+
+    @Query("SELECT p FROM Partido p " +
+           "JOIN p.reserva r " +
+           "JOIN r.cancha c " +
+           "WHERE (cast(:sedeId as Long) IS NULL OR c.sede.id = :sedeId) " +
+           "AND (cast(:fecha as LocalDate) IS NULL OR r.fecha = :fecha) " +
+           "AND (:estado IS NULL OR p.estado = :estado) " +
+           "ORDER BY r.fecha DESC, r.horaInicio DESC, p.id DESC")
+    org.springframework.data.domain.Page<Partido> findPartidosGlobal(
+            @Param("sedeId") Long sedeId,
+            @Param("fecha") java.time.LocalDate fecha,
+            @Param("estado") com.reservacanchas.model.enums.EstadoPartido estado,
+            org.springframework.data.domain.Pageable pageable);
 }

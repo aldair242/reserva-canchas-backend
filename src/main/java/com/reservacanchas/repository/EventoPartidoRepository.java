@@ -54,9 +54,9 @@ public interface EventoPartidoRepository extends JpaRepository<EventoPartido, Lo
     @Query("SELECT COUNT(g) FROM Gol g " +
            "WHERE g.estado = :estado " +
            "AND g.anotador.persona.id = :personaId " +
-           "AND (:sedeId IS NULL OR g.partido.reserva.cancha.sede.id = :sedeId) " +
-           "AND (:desde IS NULL OR g.partido.reserva.fecha >= :desde) " +
-           "AND (:hasta IS NULL OR g.partido.reserva.fecha <= :hasta)")
+           "AND (cast(:sedeId as Long) IS NULL OR g.partido.reserva.cancha.sede.id = :sedeId) " +
+           "AND (cast(:desde as LocalDate) IS NULL OR g.partido.reserva.fecha >= :desde) " +
+           "AND (cast(:hasta as LocalDate) IS NULL OR g.partido.reserva.fecha <= :hasta)")
     long contarGoles(@Param("estado") EstadoEvento estado,
                      @Param("personaId") Long personaId,
                      @Param("sedeId") Long sedeId,
@@ -66,9 +66,9 @@ public interface EventoPartidoRepository extends JpaRepository<EventoPartido, Lo
     @Query("SELECT COUNT(g) FROM Gol g " +
            "WHERE g.estado = :estado " +
            "AND g.asistente.persona.id = :personaId " +
-           "AND (:sedeId IS NULL OR g.partido.reserva.cancha.sede.id = :sedeId) " +
-           "AND (:desde IS NULL OR g.partido.reserva.fecha >= :desde) " +
-           "AND (:hasta IS NULL OR g.partido.reserva.fecha <= :hasta)")
+           "AND (cast(:sedeId as Long) IS NULL OR g.partido.reserva.cancha.sede.id = :sedeId) " +
+           "AND (cast(:desde as LocalDate) IS NULL OR g.partido.reserva.fecha >= :desde) " +
+           "AND (cast(:hasta as LocalDate) IS NULL OR g.partido.reserva.fecha <= :hasta)")
     long contarAsistencias(@Param("estado") EstadoEvento estado,
                            @Param("personaId") Long personaId,
                            @Param("sedeId") Long sedeId,
@@ -78,9 +78,9 @@ public interface EventoPartidoRepository extends JpaRepository<EventoPartido, Lo
     @Query("SELECT g.anotador.persona.id, COUNT(g) FROM Gol g " +
            "WHERE g.estado = :estado " +
            "AND g.anotador IS NOT NULL " +
-           "AND (:sedeId IS NULL OR g.partido.reserva.cancha.sede.id = :sedeId) " +
-           "AND (:desde IS NULL OR g.partido.reserva.fecha >= :desde) " +
-           "AND (:hasta IS NULL OR g.partido.reserva.fecha <= :hasta) " +
+           "AND (cast(:sedeId as Long) IS NULL OR g.partido.reserva.cancha.sede.id = :sedeId) " +
+           "AND (cast(:desde as LocalDate) IS NULL OR g.partido.reserva.fecha >= :desde) " +
+           "AND (cast(:hasta as LocalDate) IS NULL OR g.partido.reserva.fecha <= :hasta) " +
            "GROUP BY g.anotador.persona.id " +
            "ORDER BY COUNT(g) DESC")
     List<Object[]> rankingGoles(@Param("estado") EstadoEvento estado,
@@ -91,9 +91,9 @@ public interface EventoPartidoRepository extends JpaRepository<EventoPartido, Lo
     @Query("SELECT g.asistente.persona.id, COUNT(g) FROM Gol g " +
            "WHERE g.estado = :estado " +
            "AND g.asistente IS NOT NULL " +
-           "AND (:sedeId IS NULL OR g.partido.reserva.cancha.sede.id = :sedeId) " +
-           "AND (:desde IS NULL OR g.partido.reserva.fecha >= :desde) " +
-           "AND (:hasta IS NULL OR g.partido.reserva.fecha <= :hasta) " +
+           "AND (cast(:sedeId as Long) IS NULL OR g.partido.reserva.cancha.sede.id = :sedeId) " +
+           "AND (cast(:desde as LocalDate) IS NULL OR g.partido.reserva.fecha >= :desde) " +
+           "AND (cast(:hasta as LocalDate) IS NULL OR g.partido.reserva.fecha <= :hasta) " +
            "GROUP BY g.asistente.persona.id " +
            "ORDER BY COUNT(g) DESC")
     List<Object[]> rankingAsistencias(@Param("estado") EstadoEvento estado,

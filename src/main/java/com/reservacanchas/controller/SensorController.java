@@ -68,13 +68,17 @@ public class SensorController {
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Detección procesada y generación de clip encolada"),
             @ApiResponse(responseCode = "400", description = "Cámara inactiva, sin partido en juego o confianza insuficiente"),
+            @ApiResponse(responseCode = "401", description = "No autenticado o clave API inválida"),
+            @ApiResponse(responseCode = "403", description = "No autorizado para gestionar la cámara"),
             @ApiResponse(responseCode = "404", description = "Cámara no encontrada")
     })
     public ResponseEntity<EventoResponse> procesarDeteccionCamara(
             @PathVariable Long camaraId,
             @Valid @RequestBody DeteccionYoloRequest request,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-API-Key", required = false) String apiKeyHeader,
             org.springframework.security.core.Authentication authentication) {
-        Gol gol = detectorPorYolo.procesarDeteccionPorCamara(camaraId, request, authentication);
+        DeteccionYoloRequest reqEfectivo = resolverRequestConHeader(request, apiKeyHeader);
+        Gol gol = detectorPorYolo.procesarDeteccionPorCamara(camaraId, reqEfectivo, authentication);
         return ResponseEntity.status(HttpStatus.CREATED).body(eventoMapper.toResponse(gol));
     }
 
@@ -91,9 +95,24 @@ public class SensorController {
     public ResponseEntity<EventoResponse> procesarDeteccionPartido(
             @PathVariable Long partidoId,
             @Valid @RequestBody DeteccionYoloRequest request,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "X-API-Key", required = false) String apiKeyHeader,
             org.springframework.security.core.Authentication authentication) {
-        Gol gol = detectorPorYolo.procesarDeteccionPorPartido(partidoId, request, authentication);
+        DeteccionYoloRequest reqEfectivo = resolverRequestConHeader(request, apiKeyHeader);
+        Gol gol = detectorPorYolo.procesarDeteccionPorPartido(partidoId, reqEfectivo, authentication);
         return ResponseEntity.status(HttpStatus.CREATED).body(eventoMapper.toResponse(gol));
+    }
+
+    private DeteccionYoloRequest resolverRequestConHeader(DeteccionYoloRequest request, String apiKeyHeader) {
+        if (request == null) {
+            return (apiKeyHeader != null && !apiKeyHeader.isBlank())
+                    ? new DeteccionYoloRequest(null, null, null, apiKeyHeader)
+                    : null;
+        }
+        if ((request.claveApi() == null || request.claveApi().isBlank())
+                && apiKeyHeader != null && !apiKeyHeader.isBlank()) {
+            return new DeteccionYoloRequest(request.equipo(), request.instante(), request.confianza(), apiKeyHeader);
+        }
+        return request;
     }
 }
 

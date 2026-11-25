@@ -16,6 +16,13 @@ public interface PartidoService {
 
     List<PartidoResponse> listarMisPartidos(Authentication authentication);
 
+    org.springframework.data.domain.Page<PartidoResponse> listarTodos(
+            Long sedeId,
+            java.time.LocalDate fecha,
+            com.reservacanchas.model.enums.EstadoPartido estado,
+            org.springframework.data.domain.Pageable pageable,
+            Authentication authentication);
+
     PartidoResponse agregarParticipante(Long partidoId, ParticipanteRequest request,
                                         Authentication authentication);
 
