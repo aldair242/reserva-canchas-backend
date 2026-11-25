@@ -6,13 +6,14 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Month;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TarifaEstandarTest {
 
     private final TarifaEstandar tarifa = new TarifaEstandar(new BigDecimal("100.00"));
-    private final LocalDate fecha = LocalDate.of(2024, 6, 15);
+    private final LocalDate fecha = LocalDate.of(2024, Month.JUNE, 15);
 
     @Test
     void calcular_unaHora_debeRetornarPrecioHora() {

@@ -23,16 +23,24 @@ import java.util.UUID;
 public class AlmacenamientoLocal implements IAlmacenamiento {
 
     private final String directorio;
+    private final String secretoFirma;
 
     @Value("${almacenamiento.url.expiracion-segundos:3600}")
     private long expiracionSegundos = 3600;
 
-    @Value("${almacenamiento.url.secreto:reserva-canchas-secreto-firma-clips-2026}")
-    private String secretoFirma = "reserva-canchas-secreto-firma-clips-2026";
-
     public AlmacenamientoLocal(
-            @Value("${almacenamiento.local.directorio:target/almacenamiento/clips}") String directorio) {
+            String directorio) {
+        this(directorio, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AlmacenamientoLocal(
+            @Value("${almacenamiento.local.directorio:target/almacenamiento/clips}") String directorio,
+            @Value("${almacenamiento.url.secreto:}") String secretoFirma) {
         this.directorio = directorio;
+        this.secretoFirma = (secretoFirma != null && !secretoFirma.isBlank())
+                ? secretoFirma
+                : UUID.randomUUID().toString();
         try {
             Files.createDirectories(Path.of(directorio));
         } catch (IOException e) {

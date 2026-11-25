@@ -13,12 +13,13 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Month;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CanchaPrecioTest {
 
-    private final LocalDate fecha = LocalDate.of(2024, 6, 15);
+    private final LocalDate fecha = LocalDate.of(2024, Month.JUNE, 15);
 
     @Test
     void calcularPrecio_tarifaEstandar_debeDelegarEnEstrategia() {
@@ -55,8 +56,8 @@ class CanchaPrecioTest {
         cancha.setTipoTarifaBase(TipoTarifa.ESTANDAR);
         cancha.setPrecioHora(new BigDecimal("100.00"));
         cancha.setPorcentajeDescuento(20.0);
-        cancha.setVigenteDesde(LocalDate.of(2024, 1, 1));
-        cancha.setVigenteHasta(LocalDate.of(2024, 12, 31));
+        cancha.setVigenteDesde(LocalDate.of(2024, Month.JANUARY, 1));
+        cancha.setVigenteHasta(LocalDate.of(2024, Month.DECEMBER, 31));
 
         BigDecimal precio = cancha.calcularPrecio(fecha, LocalTime.of(10, 0), LocalTime.of(11, 0));
 

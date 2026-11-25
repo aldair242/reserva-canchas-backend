@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -27,7 +28,7 @@ class ReservaModelTest {
 
         Reserva reserva = new Reserva();
         reserva.setCancha(cancha);
-        reserva.setFecha(LocalDate.of(2024, 6, 15));
+        reserva.setFecha(LocalDate.of(2024, Month.JUNE, 15));
         reserva.setHoraInicio(LocalTime.of(10, 0));
         reserva.setHoraFin(LocalTime.of(12, 0));
 
@@ -39,7 +40,7 @@ class ReservaModelTest {
     @Test
     void calcularMonto_canchaNula_debeRetornarCero() {
         Reserva reserva = new Reserva();
-        reserva.setFecha(LocalDate.of(2024, 6, 15));
+        reserva.setFecha(LocalDate.of(2024, Month.JUNE, 15));
         reserva.setHoraInicio(LocalTime.of(10, 0));
         reserva.setHoraFin(LocalTime.of(12, 0));
 
@@ -106,17 +107,17 @@ class ReservaModelTest {
 
         Reserva reserva = new Reserva();
         reserva.setCancha(cancha);
-        reserva.setFecha(LocalDate.of(2024, 6, 15));
+        reserva.setFecha(LocalDate.of(2024, Month.JUNE, 15));
         reserva.setHoraInicio(LocalTime.of(10, 0));
         reserva.setHoraFin(LocalTime.of(12, 0));
         reserva.setPrecioTotal(new BigDecimal("160.00"));
 
         reserva.reprogramar(
-                LocalDate.of(2024, 6, 16),
+                LocalDate.of(2024, Month.JUNE, 16),
                 LocalTime.of(14, 0),
                 LocalTime.of(16, 0));
 
-        assertEquals(LocalDate.of(2024, 6, 16), reserva.getFecha());
+        assertEquals(LocalDate.of(2024, Month.JUNE, 16), reserva.getFecha());
         assertEquals(LocalTime.of(14, 0), reserva.getHoraInicio());
         assertEquals(LocalTime.of(16, 0), reserva.getHoraFin());
         assertEquals(0, new BigDecimal("160.00").compareTo(reserva.getPrecioTotal()));

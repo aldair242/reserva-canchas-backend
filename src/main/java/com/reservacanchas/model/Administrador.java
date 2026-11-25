@@ -12,6 +12,7 @@ import lombok.Setter;
 public class Administrador extends Usuario {
 
     public void crearSede(Sede s, AdministradorSede a) {
+        // Metodo de dominio intencionalmente vacio; la persistencia se realiza a traves de SedeService
     }
 
     public void desactivarUsuario(Usuario u) {

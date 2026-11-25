@@ -27,6 +27,10 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private static final String RUTA_ADMIN_USUARIOS = "/api/admin/usuarios/**";
+    private static final String ROL_ADMIN = "ADMIN";
+    private static final String ROL_ADMIN_SEDE = "ADMIN_SEDE";
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UsuarioDetailsService usuarioDetailsService;
     private final PasswordEncoder passwordEncoder;
@@ -51,6 +55,9 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/api/sensores/yolo/**"
+                        ).permitAll()
+                        .requestMatchers(
                                 "/api/auth/**",
                                 "/api/sensores/**",
                                 "/api/clips/archivos/**",
@@ -67,6 +74,9 @@ public class SecurityConfig {
                                 "/api/canchas/{id}/disponibilidad",
                                 "/api/invitaciones/{token}"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/invitaciones/{token}/unirse"
+                        ).permitAll()
                         .requestMatchers(
                                 "/api/sedes/mis"
                         ).authenticated()
@@ -74,22 +84,22 @@ public class SecurityConfig {
                                 "/api/reservas/**"
                         ).hasRole("JUGADOR")
                         .requestMatchers(
-                                HttpMethod.POST, "/api/admin/usuarios/**"
-                        ).hasRole("ADMIN")
+                                HttpMethod.POST, RUTA_ADMIN_USUARIOS
+                        ).hasRole(ROL_ADMIN)
                         .requestMatchers(
-                                HttpMethod.PUT, "/api/admin/usuarios/**"
-                        ).hasRole("ADMIN")
+                                HttpMethod.PUT, RUTA_ADMIN_USUARIOS
+                        ).hasRole(ROL_ADMIN)
                         .requestMatchers(
-                                HttpMethod.DELETE, "/api/admin/usuarios/**"
-                        ).hasRole("ADMIN")
+                                HttpMethod.DELETE, RUTA_ADMIN_USUARIOS
+                        ).hasRole(ROL_ADMIN)
                         .requestMatchers(
-                                "/api/admin/usuarios/**"
-                        ).hasAnyRole("ADMIN", "ADMIN_SEDE")
+                                RUTA_ADMIN_USUARIOS
+                        ).hasAnyRole(ROL_ADMIN, ROL_ADMIN_SEDE)
                         .requestMatchers(
                                 "/api/sedes/**",
                                 "/api/canchas/**",
                                 "/api/dispositivos/**"
-                        ).hasAnyRole("ADMIN", "ADMIN_SEDE")
+                        ).hasAnyRole(ROL_ADMIN, ROL_ADMIN_SEDE)
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

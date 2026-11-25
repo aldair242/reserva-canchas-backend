@@ -26,6 +26,8 @@ import java.util.UUID;
 @Service
 public class DispositivoServiceImpl implements DispositivoService {
 
+    private static final String RESOURCE_CANCHA = "Cancha";
+
     private final DispositivoRepository dispositivoRepository;
     private final CanchaRepository canchaRepository;
     private final DispositivoMapper dispositivoMapper;
@@ -49,7 +51,7 @@ public class DispositivoServiceImpl implements DispositivoService {
     @Transactional
     public DispositivoRegistroResponse registrarSensor(Long canchaId, RegistroSensorRequest request, Authentication authentication) {
         Cancha cancha = canchaRepository.findById(canchaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cancha", canchaId));
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_CANCHA, canchaId));
         securityService.verificarGestionSede(cancha.getSede(), authentication);
 
         if (dispositivoRepository.existsByCodigo(request.codigo())) {
@@ -75,7 +77,7 @@ public class DispositivoServiceImpl implements DispositivoService {
     @Transactional
     public DispositivoRegistroResponse registrarCamara(Long canchaId, RegistroCamaraRequest request, Authentication authentication) {
         Cancha cancha = canchaRepository.findById(canchaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cancha", canchaId));
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_CANCHA, canchaId));
         securityService.verificarGestionSede(cancha.getSede(), authentication);
 
         if (dispositivoRepository.existsByCodigo(request.codigo())) {
@@ -114,7 +116,7 @@ public class DispositivoServiceImpl implements DispositivoService {
     @Transactional(readOnly = true)
     public List<DispositivoResponse> listarPorCancha(Long canchaId, Authentication authentication) {
         Cancha cancha = canchaRepository.findById(canchaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cancha", canchaId));
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_CANCHA, canchaId));
         securityService.verificarGestionSede(cancha.getSede(), authentication);
 
         List<Dispositivo> dispositivos = dispositivoRepository.findByCanchaId(canchaId);

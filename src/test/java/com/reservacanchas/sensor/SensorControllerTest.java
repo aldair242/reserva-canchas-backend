@@ -3,6 +3,7 @@ package com.reservacanchas.sensor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.reservacanchas.controller.SensorController;
 import com.reservacanchas.dto.partido.EventoResponse;
+import com.reservacanchas.dto.sensor.DeteccionYoloRequest;
 import com.reservacanchas.dto.sensor.EventoSensorRequest;
 import com.reservacanchas.dto.sensor.LatidoRequest;
 import com.reservacanchas.dto.sensor.LatidoResponse;
@@ -39,6 +40,12 @@ class SensorControllerTest {
 
     @Mock
     private SensorService sensorService;
+
+    @Mock
+    private com.reservacanchas.service.impl.DetectorPorYolo detectorPorYolo;
+
+    @Mock
+    private com.reservacanchas.mapper.EventoMapper eventoMapper;
 
     @InjectMocks
     private SensorController sensorController;
@@ -137,5 +144,61 @@ class SensorControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.message").value("Credenciales invalidas del sensor"));
+    }
+
+    @Test
+    void yoloDeteccion_sinClaveNiAuth_retorna401() throws Exception {
+        when(detectorPorYolo.procesarDeteccionPorCamara(any(), any(), any()))
+                .thenThrow(new CredencialesInvalidasException("Se requiere rol de administrador de sede o clave API de cámara válida"));
+
+        DeteccionYoloRequest request = new DeteccionYoloRequest(LadoEquipo.A, LocalDateTime.now(), 0.92, null);
+
+        mockMvc.perform(post("/api/sensores/yolo/camaras/1/deteccion")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Se requiere rol de administrador de sede o clave API de cámara válida"));
+    }
+
+    @Test
+    void yoloDeteccion_usuarioSinPermiso_retorna403() throws Exception {
+        when(detectorPorYolo.procesarDeteccionPorPartido(any(), any(), any()))
+                .thenThrow(new org.springframework.security.access.AccessDeniedException("No tiene permisos para gestionar la sede de esta detección"));
+
+        DeteccionYoloRequest request = new DeteccionYoloRequest(LadoEquipo.A, LocalDateTime.now(), 0.92, null);
+
+        mockMvc.perform(post("/api/sensores/yolo/partidos/10/deteccion")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("No tiene permisos para gestionar la sede de esta detección"));
+    }
+
+    @Test
+    void yoloDeteccion_conExito_retorna201() throws Exception {
+        com.reservacanchas.model.Gol gol = new com.reservacanchas.model.Gol();
+        gol.setId(100L);
+        gol.setEquipo(LadoEquipo.A);
+
+        EventoResponse response = new EventoResponse(
+                100L, TipoEvento.GOL, LadoEquipo.A, LocalDateTime.now(), 10,
+                OrigenEvento.YOLO, EstadoEvento.PENDIENTE_ATRIBUCION, "Gol detectado por YOLO",
+                true, null, null, null, null, null
+        );
+
+        when(detectorPorYolo.procesarDeteccionPorCamara(any(), any(), any())).thenReturn(gol);
+        when(eventoMapper.toResponse(gol)).thenReturn(response);
+
+        DeteccionYoloRequest request = new DeteccionYoloRequest(LadoEquipo.A, LocalDateTime.now(), 0.95, "valid-key");
+
+        mockMvc.perform(post("/api/sensores/yolo/camaras/1/deteccion")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(100))
+                .andExpect(jsonPath("$.origen").value("YOLO"))
+                .andExpect(jsonPath("$.equipo").value("A"));
     }
 }

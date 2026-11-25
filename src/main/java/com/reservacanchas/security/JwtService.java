@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
@@ -16,11 +17,24 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret}")
+    @Value("${jwt.secret:}")
     private String secret;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration:86400000}")
     private long expiration;
+
+    private SecretKey signingKey;
+
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        if (secret != null && secret.length() >= 32) {
+            this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        } else {
+            byte[] randomKey = new byte[32];
+            new java.security.SecureRandom().nextBytes(randomKey);
+            this.signingKey = Keys.hmacShaKeyFor(randomKey);
+        }
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -40,11 +54,12 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        Instant ahora = Instant.now();
         return Jwts.builder()
                 .claims(extraClaims)
                 .subject(userDetails.getUsername())
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .issuedAt(Date.from(ahora))
+                .expiration(Date.from(ahora.plusMillis(expiration)))
                 .signWith(getSigningKey())
                 .compact();
     }
@@ -55,7 +70,7 @@ public class JwtService {
     }
 
     private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+        return extractExpiration(token).toInstant().isBefore(Instant.now());
     }
 
     private Date extractExpiration(String token) {
@@ -71,7 +86,9 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
+        if (this.signingKey == null) {
+            init();
+        }
+        return this.signingKey;
     }
 }

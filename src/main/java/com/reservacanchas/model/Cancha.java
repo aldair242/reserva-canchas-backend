@@ -108,10 +108,10 @@ public abstract class Cancha {
 
     @PostLoad
     private void reconstruirTarifa() {
-        this.tarifa = TarifaFactory.crear(
+        this.tarifa = TarifaFactory.crear(new TarifaFactory.ParametrosTarifa(
                 tipoTarifa, precioHora, precioNormal, precioPico,
                 inicioPico, finPico, tipoTarifaBase,
-                porcentajeDescuento, vigenteDesde, vigenteHasta);
+                porcentajeDescuento, vigenteDesde, vigenteHasta));
     }
 
     public void setTarifa(EstrategiaTarifa tarifa) {

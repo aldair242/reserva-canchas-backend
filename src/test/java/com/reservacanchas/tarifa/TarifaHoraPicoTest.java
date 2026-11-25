@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Month;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -14,7 +15,7 @@ class TarifaHoraPicoTest {
     private final TarifaHoraPico tarifa = new TarifaHoraPico(
             new BigDecimal("50.00"), new BigDecimal("100.00"),
             LocalTime.of(18, 0), LocalTime.of(22, 0));
-    private final LocalDate fecha = LocalDate.of(2024, 6, 15);
+    private final LocalDate fecha = LocalDate.of(2024, Month.JUNE, 15);
 
     @Test
     void calcular_fueraDePico_debeUsarPrecioNormal() {

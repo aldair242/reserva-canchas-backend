@@ -8,10 +8,7 @@ import java.time.LocalTime;
 
 public final class TarifaFactory {
 
-    private TarifaFactory() {
-    }
-
-    public static EstrategiaTarifa crear(
+    public record ParametrosTarifa(
             TipoTarifa tipo,
             BigDecimal precioHora,
             BigDecimal precioNormal,
@@ -21,25 +18,35 @@ public final class TarifaFactory {
             TipoTarifa tipoBase,
             double porcentajeDescuento,
             LocalDate vigenteDesde,
-            LocalDate vigenteHasta) {
+            LocalDate vigenteHasta
+    ) {}
 
-        if (tipo == null) {
-            return new TarifaEstandar(precioHora != null ? precioHora : BigDecimal.ZERO);
+    private TarifaFactory() {
+    }
+
+    public static EstrategiaTarifa crear(ParametrosTarifa params) {
+        if (params == null || params.tipo() == null) {
+            BigDecimal precio = params != null && params.precioHora() != null
+                    ? params.precioHora() : BigDecimal.ZERO;
+            return new TarifaEstandar(precio);
         }
 
-        return switch (tipo) {
-            case ESTANDAR -> new TarifaEstandar(precioHora != null ? precioHora : BigDecimal.ZERO);
+        return switch (params.tipo()) {
+            case ESTANDAR -> new TarifaEstandar(
+                    params.precioHora() != null ? params.precioHora() : BigDecimal.ZERO);
             case HORA_PICO -> new TarifaHoraPico(
-                    precioNormal != null ? precioNormal : BigDecimal.ZERO,
-                    precioPico != null ? precioPico : BigDecimal.ZERO,
-                    inicioPico != null ? inicioPico : LocalTime.MIN,
-                    finPico != null ? finPico : LocalTime.MAX);
+                    params.precioNormal() != null ? params.precioNormal() : BigDecimal.ZERO,
+                    params.precioPico() != null ? params.precioPico() : BigDecimal.ZERO,
+                    params.inicioPico() != null ? params.inicioPico() : LocalTime.MIN,
+                    params.finPico() != null ? params.finPico() : LocalTime.MAX);
             case PROMOCIONAL -> {
-                EstrategiaTarifa base = crear(
-                        tipoBase != null ? tipoBase : TipoTarifa.ESTANDAR,
-                        precioHora, precioNormal, precioPico, inicioPico, finPico,
-                        null, 0, null, null);
-                yield new TarifaPromocional(base, porcentajeDescuento, vigenteDesde, vigenteHasta);
+                ParametrosTarifa baseParams = new ParametrosTarifa(
+                        params.tipoBase() != null ? params.tipoBase() : TipoTarifa.ESTANDAR,
+                        params.precioHora(), params.precioNormal(), params.precioPico(),
+                        params.inicioPico(), params.finPico(), null, 0, null, null);
+                EstrategiaTarifa base = crear(baseParams);
+                yield new TarifaPromocional(base, params.porcentajeDescuento(),
+                        params.vigenteDesde(), params.vigenteHasta());
             }
         };
     }

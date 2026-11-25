@@ -45,4 +45,12 @@ public record PartidoResponse(
         @Schema(description = "Lista de eventos ocurridos en el partido")
         List<EventoResponse> eventos
 ) {
+    public static PartidoResponse sinToken(PartidoResponse r) {
+        if (r == null) return null;
+        return new PartidoResponse(
+                r.id(), r.estado(), r.nombreEquipoA(), r.nombreEquipoB(),
+                r.golesEquipoA(), r.golesEquipoB(), r.inicioReal(), r.finReal(),
+                null, r.reservaId(), r.participantes(), r.eventos()
+        );
+    }
 }

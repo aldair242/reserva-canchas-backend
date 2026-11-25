@@ -17,6 +17,12 @@ public record ParticipanteRequest(
         String apellidoInvitado,
 
         @Schema(description = "Equipo asignado", example = "EQUIPO_A", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull LadoEquipo equipo
+        @NotNull LadoEquipo equipo,
+
+        @Schema(description = "Token de invitación requerido para unirse al partido", example = "INV-ABC123XYZ")
+        String tokenInvitacion
 ) {
+    public ParticipanteRequest(Long jugadorId, String nombreInvitado, String apellidoInvitado, LadoEquipo equipo) {
+        this(jugadorId, nombreInvitado, apellidoInvitado, equipo, null);
+    }
 }

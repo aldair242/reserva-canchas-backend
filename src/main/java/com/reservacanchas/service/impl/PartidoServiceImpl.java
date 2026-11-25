@@ -35,6 +35,8 @@ import java.util.UUID;
 @Service
 public class PartidoServiceImpl implements PartidoService {
 
+    private static final String RESOURCE_PARTIDO = "Partido";
+
     private final PartidoRepository partidoRepository;
     private final ReservaRepository reservaRepository;
     private final JugadorRepository jugadorRepository;
@@ -76,6 +78,9 @@ public class PartidoServiceImpl implements PartidoService {
         if (!reserva.getOrganizador().getId().equals(organizador.getId())) {
             throw new OperacionNoPermitidaException("No puede crear un partido de una reserva ajena");
         }
+        if (reserva.getEstado() == EstadoReserva.CANCELADA) {
+            throw new OperacionNoPermitidaException("No se puede crear un partido a partir de una reserva cancelada");
+        }
         if (reserva.getEstado() != EstadoReserva.CONFIRMADA) {
             throw new OperacionNoPermitidaException(
                     "La reserva debe estar confirmada para crear un partido");
@@ -112,9 +117,58 @@ public class PartidoServiceImpl implements PartidoService {
     @Override
     @Transactional(readOnly = true)
     public PartidoResponse obtenerPorId(Long id) {
+        Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        return obtenerPorId(id, auth);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PartidoResponse obtenerPorId(Long id, Authentication authentication) {
         Partido partido = partidoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Partido", id));
-        return partidoMapper.toResponse(partido);
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_PARTIDO, id));
+        PartidoResponse resp = partidoMapper.toResponse(partido);
+        return sanitizarToken(resp, partido, authentication);
+    }
+
+    private PartidoResponse sanitizarToken(PartidoResponse response, Partido partido, Authentication authentication) {
+        if (response == null || partido == null) {
+            return response;
+        }
+        boolean autorizado = esUsuarioAutorizadoParaVerToken(partido, authentication);
+        if (!autorizado) {
+            return PartidoResponse.sinToken(response);
+        }
+        return response;
+    }
+
+    private boolean esUsuarioAutorizadoParaVerToken(Partido partido, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            return false;
+        }
+        try {
+            if (securityService.esAdministrador(authentication)) {
+                return true;
+            }
+            if (partido.getReserva() != null && partido.getReserva().getCancha() != null
+                    && partido.getReserva().getCancha().getSede() != null
+                    && securityService.esAdministradorSede(authentication)) {
+                securityService.verificarGestionSede(partido.getReserva().getCancha().getSede(), authentication);
+                return true;
+            }
+            Usuario usuario = securityService.getUsuarioActual(authentication);
+            if (partido.getReserva() != null && partido.getReserva().getOrganizador() != null
+                    && partido.getReserva().getOrganizador().getId().equals(usuario.getId())) {
+                return true;
+            }
+            if (partido.getParticipantes() != null) {
+                return partido.getParticipantes().stream()
+                        .anyMatch(p -> p.getPersona() != null && p.getPersona().getId().equals(usuario.getId()));
+            }
+        } catch (Exception e) {
+            return false;
+        }
+        return false;
     }
 
     @Override
@@ -137,14 +191,22 @@ public class PartidoServiceImpl implements PartidoService {
         }
 
         Partido partido = partidoRepository.findById(partidoId)
-                .orElseThrow(() -> new ResourceNotFoundException("Partido", partidoId));
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_PARTIDO, partidoId));
 
-        boolean esOrganizador = partido.getReserva().getOrganizador().getId().equals(jugadorActual.getId());
+        boolean esOrganizador = partido.getReserva() != null && partido.getReserva().getOrganizador() != null
+                && partido.getReserva().getOrganizador().getId().equals(jugadorActual.getId());
         boolean esElMismoJugador = request.jugadorId() != null && request.jugadorId().equals(jugadorActual.getId());
 
         if (!esOrganizador && !esElMismoJugador) {
             throw new OperacionNoPermitidaException(
                     "No tiene permisos para gestionar este partido");
+        }
+
+        if (!esOrganizador) {
+            if (request.tokenInvitacion() == null || request.tokenInvitacion().isBlank()
+                    || !request.tokenInvitacion().equals(partido.getTokenInvitacion())) {
+                throw new OperacionNoPermitidaException("Se requiere un token de invitación válido para unirse al partido");
+            }
         }
 
         Persona persona;
@@ -185,6 +247,9 @@ public class PartidoServiceImpl implements PartidoService {
     @Transactional
     public PartidoResponse iniciar(Long id, Authentication authentication) {
         Partido partido = obtenerPartidoPropio(id, authentication);
+        if (partido.getReserva() != null && partido.getReserva().getEstado() == EstadoReserva.CANCELADA) {
+            throw new OperacionNoPermitidaException("No se puede iniciar un partido cuya reserva ha sido cancelada");
+        }
         if (partido.getEstado() != EstadoPartido.PROGRAMADO) {
             throw new OperacionNoPermitidaException(
                     "El partido no puede iniciarse en estado " + partido.getEstado());
@@ -233,13 +298,22 @@ public class PartidoServiceImpl implements PartidoService {
         return partidoMapper.toResponse(guardado);
     }
 
+    @Override
+    @Transactional
+    public PartidoResponse revocarTokenInvitacion(Long partidoId, Authentication authentication) {
+        Partido partido = obtenerPartidoPropio(partidoId, authentication);
+        partido.revocarTokenInvitacion();
+        Partido guardado = partidoRepository.save(partido);
+        return sanitizarToken(partidoMapper.toResponse(guardado), guardado, authentication);
+    }
+
     private Partido obtenerPartidoPropio(Long id, Authentication authentication) {
         Usuario usuario = securityService.getUsuarioActual(authentication);
         if (!(usuario instanceof Jugador organizador)) {
             throw new OperacionNoPermitidaException("Solo los jugadores pueden gestionar partidos");
         }
         Partido partido = partidoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Partido", id));
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_PARTIDO, id));
         if (!partido.getReserva().getOrganizador().getId().equals(organizador.getId())) {
             throw new OperacionNoPermitidaException(
                     "No tiene permisos para gestionar este partido");

@@ -31,7 +31,7 @@ public class Jugador extends Usuario {
     @JoinColumn(name = "estadistica_id")
     private EstadisticaJugador estadistica;
 
-    public Reserva reservar(Cancha c, LocalDate f, LocalTime ini, LocalTime fin) {
+    public Reserva reservar() {
         return null;
     }
 

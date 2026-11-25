@@ -135,7 +135,7 @@ public class ClipServiceImpl implements ClipService {
             }
         } catch (Exception e) {
             if (gol != null && gol.getClip() != null) {
-                gol.getClip().marcarError("Excepcion al generar clip: " + e.getMessage());
+                gol.getClip().marcarError();
                 clipRepository.save(gol.getClip());
             }
         }

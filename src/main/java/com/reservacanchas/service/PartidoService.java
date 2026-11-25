@@ -12,6 +12,8 @@ public interface PartidoService {
 
     PartidoResponse obtenerPorId(Long id);
 
+    PartidoResponse obtenerPorId(Long id, Authentication authentication);
+
     List<PartidoResponse> listarMisPartidos(Authentication authentication);
 
     PartidoResponse agregarParticipante(Long partidoId, ParticipanteRequest request,
@@ -20,4 +22,6 @@ public interface PartidoService {
     PartidoResponse iniciar(Long id, Authentication authentication);
 
     PartidoResponse finalizar(Long id, Authentication authentication);
+
+    PartidoResponse revocarTokenInvitacion(Long partidoId, Authentication authentication);
 }

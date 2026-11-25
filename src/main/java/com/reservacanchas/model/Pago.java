@@ -58,11 +58,11 @@ public abstract class Pago {
         this.fechaPago = LocalDateTime.now(ClockConfig.ZONA_HORARIA);
     }
 
-    public void marcarFallido() {
-        this.estado = EstadoPago.FALLIDO;
-    }
-
     public void reembolsar() {
         this.estado = EstadoPago.REEMBOLSADO;
+    }
+
+    public void marcarFallido() {
+        this.estado = EstadoPago.FALLIDO;
     }
 }

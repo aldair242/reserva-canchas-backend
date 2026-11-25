@@ -28,7 +28,7 @@ public class AdministradorSede extends Usuario {
         c.bloquear(b);
     }
 
-    public List<Reserva> consultarReservas(Sede s, LocalDate f) {
+    public List<Reserva> consultarReservas() {
         return List.of();
     }
 }

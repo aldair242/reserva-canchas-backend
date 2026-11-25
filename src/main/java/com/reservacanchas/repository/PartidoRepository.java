@@ -1,7 +1,9 @@
 package com.reservacanchas.repository;
 
 import com.reservacanchas.model.Partido;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,6 +16,10 @@ public interface PartidoRepository extends JpaRepository<Partido, Long> {
     Optional<Partido> findByReservaId(Long reservaId);
 
     Optional<Partido> findByTokenInvitacion(String tokenInvitacion);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Partido p WHERE p.tokenInvitacion = :tokenInvitacion")
+    Optional<Partido> findByTokenInvitacionForUpdate(@Param("tokenInvitacion") String tokenInvitacion);
 
     @Query("SELECT p FROM Partido p WHERE p.reserva.id = :reservaId")
     Optional<Partido> buscarPorReservaId(@Param("reservaId") Long reservaId);
