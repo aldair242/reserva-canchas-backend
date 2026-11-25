@@ -62,6 +62,24 @@ public class PartidoController {
         return ResponseEntity.ok(partidoService.listarMisPartidos(authentication));
     }
 
+    @GetMapping
+    @Operation(summary = "Listar partidos para panel administrativo", description = "Permite a los administradores consultar partidos con filtros opcionales por sede, fecha y estado, con soporte de paginación.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de partidos obtenida exitosamente"),
+            @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "403", description = "No autorizado (restringido a administradores)")
+    })
+    public ResponseEntity<org.springframework.data.domain.Page<PartidoResponse>> listarTodos(
+            @Parameter(description = "Id de la sede para filtrar") @RequestParam(required = false) Long sedeId,
+            @Parameter(description = "Fecha para filtrar (yyyy-MM-dd)") @RequestParam(required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate fecha,
+            @Parameter(description = "Estado del partido (PROGRAMADO, EN_JUEGO, FINALIZADO, CANCELADO)") @RequestParam(required = false)
+            com.reservacanchas.model.enums.EstadoPartido estado,
+            @org.springdoc.core.annotations.ParameterObject org.springframework.data.domain.Pageable pageable,
+            Authentication authentication) {
+        return ResponseEntity.ok(partidoService.listarTodos(sedeId, fecha, estado, pageable, authentication));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Obtener un partido por id", description = "Retorna el detalle completo del partido, participantes y marcador actual.")
     @ApiResponses({

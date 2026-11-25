@@ -11,6 +11,7 @@ import com.reservacanchas.model.ParticipantePartido;
 import com.reservacanchas.model.Partido;
 import com.reservacanchas.model.Persona;
 import com.reservacanchas.model.Reserva;
+import com.reservacanchas.model.Sede;
 import com.reservacanchas.model.Usuario;
 import com.reservacanchas.model.enums.EstadoPartido;
 import com.reservacanchas.model.enums.EstadoReserva;
@@ -23,6 +24,7 @@ import com.reservacanchas.repository.InvitadoRepository;
 import com.reservacanchas.repository.JugadorRepository;
 import com.reservacanchas.repository.PartidoRepository;
 import com.reservacanchas.repository.ReservaRepository;
+import com.reservacanchas.repository.SedeRepository;
 import com.reservacanchas.service.PartidoService;
 import com.reservacanchas.service.SecurityService;
 import org.springframework.security.core.Authentication;
@@ -39,6 +41,7 @@ public class PartidoServiceImpl implements PartidoService {
 
     private final PartidoRepository partidoRepository;
     private final ReservaRepository reservaRepository;
+    private final SedeRepository sedeRepository;
     private final JugadorRepository jugadorRepository;
     private final InvitadoRepository invitadoRepository;
     private final CamaraCanchaRepository camaraCanchaRepository;
@@ -54,8 +57,23 @@ public class PartidoServiceImpl implements PartidoService {
                               GrabacionRepository grabacionRepository,
                               PartidoMapper partidoMapper,
                               SecurityService securityService) {
+        this(partidoRepository, reservaRepository, null, jugadorRepository, invitadoRepository,
+                camaraCanchaRepository, grabacionRepository, partidoMapper, securityService);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public PartidoServiceImpl(PartidoRepository partidoRepository,
+                              ReservaRepository reservaRepository,
+                              SedeRepository sedeRepository,
+                              JugadorRepository jugadorRepository,
+                              InvitadoRepository invitadoRepository,
+                              CamaraCanchaRepository camaraCanchaRepository,
+                              GrabacionRepository grabacionRepository,
+                              PartidoMapper partidoMapper,
+                              SecurityService securityService) {
         this.partidoRepository = partidoRepository;
         this.reservaRepository = reservaRepository;
+        this.sedeRepository = sedeRepository;
         this.jugadorRepository = jugadorRepository;
         this.invitadoRepository = invitadoRepository;
         this.camaraCanchaRepository = camaraCanchaRepository;
@@ -179,6 +197,32 @@ public class PartidoServiceImpl implements PartidoService {
         return partidos.stream()
                 .map(partidoMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<PartidoResponse> listarTodos(
+            Long sedeId,
+            java.time.LocalDate fecha,
+            com.reservacanchas.model.enums.EstadoPartido estado,
+            org.springframework.data.domain.Pageable pageable,
+            Authentication authentication) {
+        if (!securityService.esAdministrador(authentication) && !securityService.esAdministradorSede(authentication)) {
+            throw new org.springframework.security.access.AccessDeniedException("Acceso restringido a administradores");
+        }
+        if (securityService.esAdministradorSede(authentication) && !securityService.esAdministrador(authentication)) {
+            if (sedeId == null) {
+                throw new OperacionNoPermitidaException("El Administrador de Sede debe especificar el sedeId correspondiente a su administración");
+            }
+            if (sedeRepository != null) {
+                Sede sede = sedeRepository.findById(sedeId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Sede", sedeId));
+                securityService.verificarGestionSede(sede, authentication);
+            }
+        }
+        org.springframework.data.domain.Page<Partido> partidos = partidoRepository.findPartidosGlobal(
+                sedeId, fecha, estado, pageable != null ? pageable : org.springframework.data.domain.Pageable.unpaged());
+        return partidos.map(p -> sanitizarToken(partidoMapper.toResponse(p), p, authentication));
     }
 
     @Override

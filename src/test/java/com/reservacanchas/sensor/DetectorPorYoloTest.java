@@ -269,4 +269,36 @@ class DetectorPorYoloTest {
         assertEquals(1, detectados.size());
         assertEquals(OrigenEvento.YOLO, detectados.get(0).getOrigen());
     }
+
+    @Test
+    void procesarDeteccionPorPartido_adminSedeDeOtraSede_lanzaAccessDenied() {
+        Long partidoId = 10L;
+        Sede sede = new Sede();
+        sede.setId(1L);
+        CanchaFutbol cancha = new CanchaFutbol();
+        cancha.setId(20L);
+        cancha.setSede(sede);
+        com.reservacanchas.model.Reserva reserva = new com.reservacanchas.model.Reserva();
+        reserva.setCancha(cancha);
+
+        Partido partido = new Partido();
+        partido.setId(partidoId);
+        partido.setReserva(reserva);
+        partido.setEstado(EstadoPartido.EN_JUEGO);
+
+        when(partidoRepository.findById(partidoId)).thenReturn(Optional.of(partido));
+        when(camaraCanchaRepository.findFirstByCanchaIdAndActivoTrue(20L)).thenReturn(Optional.empty());
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getPrincipal()).thenReturn("admin_otra_sede");
+        when(securityService.esAdministrador(authentication)).thenReturn(false);
+        when(securityService.esAdministradorSede(authentication)).thenReturn(true);
+        doThrow(new AccessDeniedException("No administra esta sede"))
+                .when(securityService).verificarGestionSede(sede, authentication);
+
+        DeteccionYoloRequest request = new DeteccionYoloRequest(LadoEquipo.A, LocalDateTime.now(clock), 0.95);
+
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class,
+                () -> detector.procesarDeteccionPorPartido(partidoId, request, authentication));
+        assertEquals("No tiene permisos para gestionar la sede de esta detección", ex.getMessage());
+    }
 }

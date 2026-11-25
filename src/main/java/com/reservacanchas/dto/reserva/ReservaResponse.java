@@ -49,6 +49,26 @@ public record ReservaResponse(
         boolean pagada,
 
         @Schema(description = "Id del partido asociado si ya fue creado, o null", example = "5")
-        Long partidoId
+        Long partidoId,
+
+        @Schema(description = "Fecha y hora límite para abonar el saldo antes de la cancelación automática (15 minutos)", example = "2026-10-20T19:15:00")
+        java.time.LocalDateTime fechaLimitePago,
+
+        @Schema(description = "Saldo restante pendiente de pago para confirmar la reserva", example = "0.00")
+        BigDecimal saldoPendiente,
+
+        @Schema(description = "Monto total abonado efectivamente a la reserva", example = "80.00")
+        BigDecimal montoPagado,
+
+        @Schema(description = "Monto total reembolsado a causa de cancelaciones o variaciones favorables de tarifa", example = "0.00")
+        BigDecimal montoReembolsado
 ) {
+    public ReservaResponse(Long id, String codigo, LocalDate fecha, LocalTime horaInicio,
+                           LocalTime horaFin, EstadoReserva estado, BigDecimal precioTotal,
+                           String motivoCancelacion, Long organizadorId, String organizadorNombre,
+                           Long canchaId, String canchaNombre, boolean pagada, Long partidoId) {
+        this(id, codigo, fecha, horaInicio, horaFin, estado, precioTotal, motivoCancelacion,
+                organizadorId, organizadorNombre, canchaId, canchaNombre, pagada, partidoId,
+                null, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+    }
 }
